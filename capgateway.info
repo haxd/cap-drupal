@@ -1,0 +1,5 @@
+; $Id$
+name = CAP Gateway
+description = CAP Vehicle Builder Module
+core = 6.x
+package = CAP

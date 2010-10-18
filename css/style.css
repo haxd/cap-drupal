@@ -1,0 +1,270 @@
+.car {
+	width: 150px;
+	height: 150px;
+	float: left;
+	margin-right: 10px;
+	margin-bottom: 10px;
+	position: relative;
+}
+
+.car a {
+	position: absolute;
+	left: 0px;
+	width: 160px;
+	bottom: 15px;
+	display: block;
+	text-align: center;
+	font-family: 'Arial', 'FreeSans', 'Sans', sans-serif;
+	font-size: 9pt;
+}
+
+ul#new-cars {
+  list-style:none outside none;
+  margin:10px auto;
+}
+
+ul#new-cars li {
+	background: none;
+  float:left;
+  height:120px;
+  list-style: none;
+  margin:0 5px;
+  width:160px;
+}
+
+ul#new-cars a, ul#new-cars label {
+  background: url("../img/car-selector-sprites.jpg") 0 0 transparent no-repeat;
+  border:medium none;
+  color:#000000;
+  display:block;
+  font-weight:bold;
+  height:20px;
+  margin:0;
+  padding-top:64px;
+  text-align:center;
+  text-decoration:none;
+  width:150px;
+}
+
+ul#new-cars a.fox, ul#new-cars label#fox {
+  background-position:-300px 0;
+}
+
+ul#new-cars a.fox:hover, ul#new-cars label#fox.selected {
+  background-position:-450px 0;
+}
+
+ul#new-cars a.polo, ul#new-cars label#polo {
+  background-position:-600px -320px;
+}
+
+ul#new-cars a.polo:hover, ul#new-cars label#polo.selected {
+  background-position:-750px -320px;
+}
+
+ul#new-cars a.polo-v, ul#new-cars label#polo-v {
+  background-position:-600px -479px;
+}
+
+ul#new-cars a.polo-v:hover, ul#new-cars label#polo-v.selected {
+  background-position:-750px -479px;
+}
+
+ul#new-cars a.golf, ul#new-cars label#golf {
+  background-position:0 -160px;
+}
+
+ul#new-cars a.golf:hover, ul#new-cars label#golf.selected {
+  background-position:-150px -160px;
+}
+
+ul#new-cars a.golf-gti-vi, ul#new-cars label#golf-gti-vi {
+  background-position:0 -80px;
+}
+
+ul#new-cars a.golf-gti-vi:hover, ul#new-cars label#golf-gti-vi.selected {
+  background-position:-150px -80px;
+}
+
+ul#new-cars a.golfplus, ul#new-cars label#golf-plus {
+  background-position:-600px -80px;
+}
+
+ul#new-cars a.golfplus:hover, ul#new-cars label#golf-plus.selected {
+  background-position:-750px -80px;
+}
+
+ul#new-cars a.golf, ul#new-cars label#golf {
+  background-position:-600px 0;
+}
+
+ul#new-cars a.golf:hover, ul#new-cars label#golf.selected {
+  background-position:-750px 0;
+}
+
+ul#new-cars a.golf--a6, ul#new-cars label#golf--a6 {
+  background-position:-600px 0;
+}
+
+ul#new-cars a.golf--a6:hover, ul#new-cars label#golf--a6.selected {
+  background-position:-750px 0;
+}
+
+ul#new-cars a.new-beetle, ul#new-cars label#new-beetle {
+  background-position:-600px -160px;
+}
+
+ul#new-cars a.new-beetle:hover, ul#new-cars label#new-beetle.selected {
+  background-position:-750px -160px;
+}
+
+ul#new-cars a.new-beetle-cabriolet, ul#new-cars label#new-beetle-cabriolet {
+  background-position:0 -240px;
+}
+
+ul#new-cars a.new-beetle-cabriolet:hover, ul#new-cars label#new-beetle-cabriolet.selected {
+  background-position:-150px -240px;
+}
+
+ul#new-cars a.jetta, ul#new-cars label#jetta {
+  background-position:-300px -160px;
+}
+
+ul#new-cars a.jetta:hover, ul#new-cars label#jetta.selected {
+  background-position:-450px -160px;
+}
+
+ul#new-cars a.passat, ul#new-cars label#passat {
+  background-position:-300px -240px;
+}
+
+ul#new-cars a.passat:hover, ul#new-cars label#passat.selected {
+  background-position:-450px -240px;
+}
+
+ul#new-cars a.passat-, ul#new-cars label#passat- {
+  background-position:0 -320px;
+}
+
+ul#new-cars a.passat-:hover, ul#new-cars label#passat-.selected {
+  background-position:-150px -320px;
+}
+
+ul#new-cars a.passatcc, ul#new-cars label#passatcc {
+  background-position:-600px -240px;
+}
+
+ul#new-cars a.passatcc:hover, ul#new-cars label#passatcc.selected {
+  background-position:-750px -240px;
+}
+
+ul#new-cars a.scirocco, ul#new-cars label#scirocco {
+  background-position:0 -400px;
+}
+
+ul#new-cars a.scirocco:hover, ul#new-cars label#scirocco.selected {
+  background-position:-150px -400px;
+}
+
+ul#new-cars a.tiguan, ul#new-cars label#tiguan {
+  background-position:-600px -400px;
+}
+
+ul#new-cars a.tiguan:hover, ul#new-cars label#tiguan.selected {
+  background-position:-750px -400px;
+}
+
+ul#new-cars a.eos, ul#new-cars label#eos {
+  background-position:0 0;
+}
+
+ul#new-cars a.eos:hover, ul#new-cars label#eos.selected {
+  background-position:-150px 0;
+}
+
+ul#new-cars a.touran, ul#new-cars label#touran {
+  background-position:-300px -480px;
+}
+
+ul#new-cars a.touran:hover, ul#new-cars label#touran.selected {
+  background-position:-450px -480px;
+}
+
+ul#new-cars a.sharan, ul#new-cars label#sharan {
+  background-position:-300px -400px;
+}
+
+ul#new-cars a.sharan:hover, ul#new-cars label#sharan.selected {
+  background-position:-450px -400px;
+}
+
+ul#new-cars a.sharan-nf, ul#new-cars label#sharan-nf {
+  background-position:-300px -560px;
+}
+
+ul#new-cars a.sharan-nf:hover, ul#new-cars label#sharan-nf.selected {
+  background-position:-454px -560px;
+}
+
+ul#new-cars a.touareg, ul#new-cars label#touareg {
+  background-position:0 -480px;
+}
+
+ul#new-cars a.touareg:hover, ul#new-cars label#touareg.selected {
+  background-position:-150px -480px;
+}
+
+ul#new-cars a.phaeton, ul#new-cars label#phaeton {
+  background-position:-300px -320px;
+}
+
+ul#new-cars a.phaeton:hover, ul#new-cars label#phaeton.selected {
+  background-position:-450px -320px;
+}
+
+ul#new-cars a.touareg-nf, ul#new-cars label#touareg-nf {
+  background-position:0 -559px;
+}
+
+ul#new-cars a.touareg-nf:hover, ul#new-cars label#touareg-nf.selected {
+  background-position:-151px -559px;
+}
+
+ul#new-cars a.touran-gp-ii, ul#new-cars label#touran-gp-ii {
+  background-position:-600px -559px;
+}
+
+ul#new-cars a.touran-gp-ii:hover, ul#new-cars label#touran-gp-ii.selected {
+  background-position:-754px -559px;
+}
+
+ul#new-cars a.phaeton-gp-iii, ul#new-cars label#phaeton-gp-iii {
+  background-position:0 -632px;
+}
+
+ul#new-cars a.phaeton-gp-iii:hover, ul#new-cars label#phaeton-gp-iii.selected {
+  background-position:-154px -632px;
+}
+
+ul#new-cars a.offer span {
+  color:#FF8800;
+}
+
+ul#new-cars a:hover {
+  color:#3E5E8F;
+}
+
+ul#new-cars a div {
+  display:inline;
+}
+
+ul#new-cars a span {
+  color:#666666;
+  font-weight:normal;
+  padding-left:2px;
+  white-space:normal;
+}
+
+form .submit {
+	text-align: right;
+}

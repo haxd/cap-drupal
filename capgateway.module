@@ -1,0 +1,423 @@
+<?php
+// vim:fenc=utf-8:ft=php:ai:si:ts=2:sw=2:et:nu:fdm=indent:fdn=0:
+
+ini_set('error_reporting', E_ALL);
+ini_set('display_errors', 'On');
+
+require('libs/CAPVehicles.class.php');
+require('libs/CAPNVD.class.php');
+require('libs/Cart.class.php');
+
+$memcache = new Memcache;
+$memcache->connect('localhost', 11211) or die ("Could not connect");
+
+function itoa( $ii, $radix=10, $stritoa="0123456789abcdefghijklmnopqrstuvwxyzABC" ) {
+    if ( $radix > strlen( $stritoa ) )    //    does request makes sense?
+        return "";    //    think of your own way to handle this case
+    $sign = $ii<0 ? "-": "";
+    $ii = abs( $ii );
+    $rc = "";
+    do {
+        $rc .= $stritoa[ $ii % $radix ];
+        $ii = floor( $ii / $radix );
+        } while ( $ii >0 );
+    return $sign . strrev( $rc );
+}
+
+function ucspecial($str) {
+	$t = explode(" ", $str);
+	$b = "";
+
+	for ($i = 0; $i < count($t); $i++) {
+		$cur = $t[$i];
+
+    if (strlen($cur) <= 3 && $i > 0) {
+			$b .= strtoupper($cur) . ($i < count($t) - 1 ? ' ' : '');
+		} else {
+			$b .= ucwords(strtolower($cur)) . ($i < count($t) - 1 ? ' ' : '');
+		}
+	}
+
+	return $b;
+}
+
+function capgateway_init() {
+	global $db_url;
+
+	if (!is_array($db_url)) {
+		$db_url = array('default' => $db_url);
+  }
+
+  $c = parse_url($db_url['default']);
+
+  $db_url['capgateway'] = "{$c['scheme']}://{$c['user']}:{$c['pass']}@{$c['host']}/cap";
+}
+
+function capgateway_menu() {
+	$items = array();
+
+	$items['buy-new/%make'] = array(
+	  'title callback' => 'capgateway_make_title',
+	  'title arguments' => array(1),
+	  'type' => MENU_CALLBACK,
+	  'page callback' => 'capgateway_models',
+	  'page arguments' => array(1),
+	  'access arguments' => array('access content'),
+	);
+
+	$items['buy-new/%make/%shortname'] = array(
+	  'load arguments' => array(1, 2),
+	  'title callback' => 'capgateway_ders_title',
+	  'title arguments' => array(1, 2),
+	  'type' => MENU_CALLBACK,
+	  'page callback' => 'capgateway_ders',
+	  'page arguments' => array(1, 2),
+	  'access arguments' => array('access content'),
+	);
+
+	$items['buy-new/options/%cap'] = array(
+	  'load arguments' => array(2),
+	  'type' => MENU_CALLBACK,
+	  'page callback' => 'capgateway_options',
+	  'page arguments' => array(2),
+	  'access arguments' => array('access content'),
+	);
+
+	$items['buy-new/options2/%cap'] = array(
+	  'load arguments' => array(2),
+	  'type' => MENU_CALLBACK,
+	  'page callback' => 'capgateway_options2',
+	  'page arguments' => array(2),
+	  'access arguments' => array('access content'),
+	);
+
+	return $items;
+}
+
+function capgateway_theme() {
+	return array(
+	  'models' => array(
+	    'template' => 'models',
+	    'pattern' => 'models',
+	    'arguments' => array('make' => null, 'models' => null)
+	  ),
+	  'variants' => array(
+	    'template' => 'variants',
+	    'pattern' => 'variants',
+	    'arguments' => array('make' => null, 'derivatives' => null)
+	  ),
+    'selection' => array(
+      'template' => 'selection',
+      'pattern' => 'selection',
+      'arguments' => array('options' => null, 'cart' => null, 'saving' => null, 'desc' => null)
+    ),
+    'selection2' => array(
+      'template' => 'selection2',
+      'pattern' => 'selection2',
+      'arguments' => array('cart' => null, 'relationships' => null, 'packs' => null, 'options' => null)
+    ),
+    'enquiry' => array(
+      'template' => 'enquiry',
+      'pattern' => 'enquiry'
+    )
+	);
+}
+
+
+function capgateway_make_title($make) {
+	return 'Buy New ' . ucfirst(trim(strtolower($make->CMan_Name)));
+}
+
+function get_result($xml) {
+  $tds = array();
+
+  foreach ($xml->children()->NewDataSet->children() as $ds) {
+    $tds[] = $ds;
+  }
+
+  return $tds;
+}
+
+function get_vehicle($func, $store, $options = array(), $expires = 43200, $soapaction = 'CAPVehicles') {
+	global $memcache;
+
+	if (!$memcache) {
+		$memcache = new Memcache;
+		$memcache->connect('localhost', 11211) or die ('Memcache Error: Could not connect');
+  }
+
+  if ($res = $memcache->get($store)) {
+  	if ($soapaction == 'CAPVehicles')
+    	return get_result(new SimpleXMLElement($res));
+    else
+    	return new SimpleXMLElement($res);
+  } else {
+  	$params = array(
+ 	    'Subscriber_ID' => '7313',
+  	  'Password' => 'mon731',
+	    'Database' => 'CAR'
+  	);
+
+  	$params += $options;
+
+
+  	$vehicles = new $soapaction();
+  	$ret = $vehicles->{$func}((object)$params);
+    try {
+    	$xml = new SimpleXMLElement($ret->{$func . 'Result'}->Returned_DataSet->any);
+    } catch (Exception $e) {
+    	return $e;
+    }
+  	$memcache->set($store, $xml->asXML(), false, $expires);
+  	if ($soapaction == 'CAPVehicles')
+     	return get_result($xml);
+    else
+    	return $xml;
+  }
+}
+
+function get_nvd($func, $store, $options, $expires = 2592000) {
+	return get_vehicle($func, $store, $options, $expires, 'CAPNVD');
+}
+
+function capgateway_ders_title($make, $shortname) {
+	return 'Buy New ' . ucfirst(strtolower(trim($make->CMan_Name))) . ' ' . ucspecial($shortname->CRan_Name);
+}
+
+function make_load($make) {
+	$makes = get_vehicle('GetCAPMan', 'gvcm', array(
+	  'JustCurrentManufacturers' => 'true',
+    'BodyStyleFilter' => ''  
+	));
+
+	foreach ($makes as $mk) {
+		if (strtolower(trim($mk->CMan_Name)) == $make) {
+      $what = $mk;
+			break;
+    }
+  }
+
+	return $what;
+}
+
+function shortname_load($what, $make) {
+  $make = make_load($make);
+
+  $ranges = get_vehicle('GetCAPRange', 'gvranges', array(
+    'ManCode' => (string) $make->CMan_Code,
+    'JustCurrentRanges' => 'true',
+    'BodyStyleFilter' => ''  
+  ));
+
+  $t = array();
+  foreach ($ranges as $model) {
+  	if (preg_match('/'.$what.'/i', str_replace(' ', '', $model->CRan_Name))) {
+    	return $model;
+    }
+  }
+
+  return $what;
+}
+
+function capgateway_models($make) {
+  $ranges = get_vehicle('GetCAPRange', 'gvranges', array(
+    'ManCode' => (string) $make->CMan_Code,
+    'JustCurrentRanges' => 'true',
+    'BodyStyleFilter' => ''  
+  ));
+
+  $t = array();
+  foreach ($ranges as $model) {
+  	if (!preg_match('/caravelle|california|caddy/i', $model->CRan_Name)) {
+    	array_push($t, $model);
+    }
+  }
+
+  $ranges = $t;
+
+  $output = theme('models', $make, $ranges);
+
+	return $output;
+}
+
+function pr($obj) {
+	print_r("<pre>" . print_r($obj, true) . "</pre>");
+}
+
+function cap_load($capid) {
+  return $capid;
+}
+
+function capgateway_options2($capid) {
+  $relquery = "SELECT * FROM derivatives_relationships LEFT JOIN relationships ON (derivatives_relationships.RI_RuleCode = relationships.RI_RuleCode) WHERE CDer_ID = " . intval($capid);
+  $packquery = "SELECT packs.* FROM derivatives LEFT JOIN derivatives_packs ON (derivatives.CDer_ID = derivatives_packs.CDer_ID) LEFT JOIN packs ON (packs.PP_PackCode = derivatives_packs.PP_PackCode) WHERE derivatives.CDer_ID = " . intval($capid);
+  $optquery = "SELECT options.* FROM descriptions LEFT JOIN derivatives_options ON ( descriptions.CDer_ID = derivatives_options.CDer_ID ) INNER JOIN options ON ( options.Opt_OptionCode = derivatives_options.Opt_OptionCode ) WHERE descriptions.CDer_ID = " . intval($capid);
+
+  $relationships = array();
+  $packs = array();
+  $options = array();
+
+	$prev = db_set_active('capgateway');
+    $relres = db_query($relquery);
+    $pacres = db_query($packquery);
+    $optres = db_query($optquery);
+
+	  while($rel = db_fetch_object($relres)) {
+	  	$relationships[] = $rel;
+    }
+
+    while ($pac = db_fetch_object($pacres)) {
+    	$packs[] = $pac;
+    }
+
+    while ($opt = db_fetch_object($optres)) {
+    	$options[] = $opt;
+    }
+	db_set_active($prev);
+
+	$cart = new Cart($_SESSION['cart']);
+
+	return theme('selection2', $cart, $relationships, $packs, $options);
+}
+
+function capgateway_options($capid) {
+  $prev = db_set_active('capgateway');
+
+    if (isset($_POST['submit'])) {
+      $cart = new Cart($_SESSION['cart']);
+    	$data = $_POST['data'];
+
+    	$opts = array($data['color'], $data['trim']);
+   
+      for ($i = 0; $i < count($opts); $i++) {
+    	  $q = "SELECT * FROM options WHERE options.Opt_OptionCode = " . intval($opts[$i]);
+    	  $r = db_query($q);
+
+    	  $opt = db_fetch_object($r);
+
+    	  $cart->addItem($opt->Do_Description, $opt->Opt_Basic, $opt->Opt_VAT, $opt->Dc_Description);
+      }
+
+      $_SESSION['cart'] = $cart->getCart();
+
+      db_set_active($prev);
+
+      header('Location: /buy-new/options2/' . $capid);
+      
+    } else {
+
+      $optquery = "SELECT options.* FROM descriptions LEFT JOIN derivatives_options ON ( descriptions.CDer_ID = derivatives_options.CDer_ID ) INNER JOIN options ON ( options.Opt_OptionCode = derivatives_options.Opt_OptionCode ) WHERE descriptions.CDer_ID = " . intval($capid);
+      $optres = db_query($optquery);
+
+      $desquery = "SELECT descriptions.* FROM descriptions WHERE descriptions.CDer_ID = " . intval($capid);
+      $desres = db_query($desquery);
+    db_set_active($prev);
+  
+    $options = array();
+
+    while ($option = db_fetch_object($optres)) {
+    	$options[] = $option;
+    }
+
+    unset($_SESSION['cart']);
+
+    $cart = new Cart();
+    $desc = db_fetch_object($desres);
+
+    $make_saving =  variable_get('cap_saving_' . trim(strtolower($desc->CVehicle_ManText)), 0);
+   	$model_saving =  variable_get('cap_saving_model' . trim(strtolower($sdesc->CVehicle_ShortModText)), 0);
+ 	  $der_saving = variable_get('cap_saving_der' . trim(strtolower($desc->CDer_ID)), 0);
+
+   	$cart->addItem(
+      ucspecial($desc->CVehicle_ManText) . ' ' . ucspecial($desc->CVehicle_ModText) . ' ' . $desc->CVehicle_DerText,
+      (float) $desc->Pr_Basic + (float) $desc->AdditionalCosts - $make_saving - $model_saving - $der_saving,
+      (float) $desc->Pr_VAT,
+      'Car'
+    );
+
+    $ndopts = array();
+    $mandopts = array(0, 1, -1);
+
+    foreach ($options as $option) {
+    	if ($option->Opt_Default == "true" or in_array($option->Opt_OptionCode, $mandopts)) {
+      	$cart->addItem($option->Do_Description, (float) $option->Opt_Basic, (float) $option->Opt_VAT, $option->Dc_Description);
+      } else {
+      	$ndopts[] = $option;
+      }
+    }
+
+    $output = theme('selection', $ndopts, $cart, array($make_saving, $model_saving, $der_saving), $desc);
+
+    $_SESSION['cart'] = $cart->getCart();
+
+    return $output;
+  }
+}
+
+function capgateway_ders($make, $shortname) {
+  if (isset($_POST['submit'])) {
+  	header('Location: /buy-new/options/' . $_POST['data']['selection']);
+  } else {
+
+  $derivatives = get_vehicle('GetCAPDerFromRange', 'gv_der_' . $shortname->CRan_Code, array(
+    'RanCode' => (string) $shortname->CRan_Code,
+    'JustCurrentDerivatives' => true,
+    'BodyStyleFilter' => ''
+  ));
+
+  foreach ($derivatives as $index => $der) {
+  	$capdescfull = get_nvd('GetCAPOptionsBundle', 'gv_opts_' . $der->CDer_ID, array(
+  	  'CAPID' => (string) $der->CDer_ID,
+  	  'OptionDate' => '2010-01-01',
+  	  'JustCurrent' => 'true',
+  	  'DescriptionRS' => 'true',
+  	  'OptionsRS' => 'true',
+  	  'RelationshipsRS' => 'true',
+  	  'PackRS' => 'true',
+  	  'TechnicalRS' => 'true'
+  	));
+
+  	$capd = $capdescfull;
+
+  	$capdescopts = $capdescfull->NVDBundle->Options;
+  	$capdescfull = $capdescfull->NVDBundle->Descriptions;
+
+  	$des = $der->addChild('Descriptions', $capdescfull);
+  	$sav = $der->addChild('Savings');
+  	$sav->addChild('make_saving', variable_get('cap_saving_' . trim(strtolower($make->CMan_Name)), 0));
+  	$sav->addChild('model_saving', variable_get('cap_saving_model' . trim(strtolower($shortname->CRan_Name)), 0));
+  	$sav->addChild('der_saving', variable_get('cap_saving_der' . trim(strtolower($der->CDer_ID)), 0));
+
+  	foreach($capdescfull->children() as $child) {
+  		$des->addChild($child->getName(), $child);
+    }
+
+    foreach($capdescopts as $index => $option) {
+      $dest = $der->addChild($index, $option);
+
+    	foreach ($option->children() as $child) {
+    		$dest->addChild(htmlspecialchars($child->getName()), htmlspecialchars($child));
+      }
+    }
+  }
+
+  $ders = array();
+
+  foreach($derivatives as $index => $der) {
+  	$ders[(string) $der->desc->CVehicle_ModTextCode . '/' . (string) $der->desc->CVehicle_ModText][] = $der;
+  }
+
+  $derivatives = $ders;
+
+  setlocale(LC_MONETARY, 'en_GB');
+
+  $output = theme('variants', $make, $derivatives);
+
+	return $output;
+
+  }
+}
+
+
+
+?>
